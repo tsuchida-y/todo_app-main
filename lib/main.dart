@@ -8,16 +8,12 @@ Database? db; //DBのインスタンスはDatabaseで定義します
 var controller;
 
 Future<void> main() async {
-  // 最初に表示するWidget
   debugPrint("初期化前");
   WidgetsFlutterBinding.ensureInitialized();
-  //Vsyncを無効化 この行をrun.appの上からopenDatabaseの上に移動したら、起動した
   db = await openDatabase(
-    // SQLite データベースを開くためのメソッド
-    //DBの初期化
-    'example.db', //データベースファイルの名前を表している
+    'example.db', //example.dbという名前のデータベースを開く
     version: 1, // onCreateを指定する場合はバージョンを指定する
-    onCreate: (db, version) async {
+    onCreate: (db, version) async {//データベースが初めて作成されるときに呼び出されるコールバック関数
       //SQLiteデータベースが初めて作成されるときに呼び出される関数
       await db.execute(
         //与えられた SQL 文をデータベース上で実行します。
@@ -34,20 +30,14 @@ Future<void> main() async {
 }
 
 class MyTodoApp extends StatelessWidget {
-  //StatelessWidgetという親クラスをMyTodoAppクラスに継承する
-  const MyTodoApp({super.key}); //const変数を変えない。super:親クラスのコンストラクタにkeyを渡す
+  const MyTodoApp({super.key}); 
 
-  @override //親クラスのメソッドをサブクラスで上書きする
+  @override //オーバーライド:親クラスのメソッドを子クラスで再定義すること
   Widget build(BuildContext context) {
-    //BuildContextを受け取ってWidgetを返す.ここでのcontexは受け取り口
     return MaterialApp(
-      // 右上に表示される"debug"ラベルを消す
-      debugShowCheckedModeBanner: false,
-      // アプリ名
+      debugShowCheckedModeBanner: false,// 右上に表示される"debug"ラベルを消す
       title: 'My Todo App',
       theme: ThemeData(
-        //theme:デザインを簡単に変更できる。
-        // テーマカラー
         primarySwatch: Colors.red,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
@@ -69,9 +59,11 @@ class TodoListPage extends StatefulWidget {
 class TodoListPageState extends State<TodoListPage> {
   late Future<List<Map<String, Object?>>>? todoListQuery;
   int selectedTabIndex = 0; //タブの選択状態を保持する変数
+  List<String> todoList = [];
+
+
   @override
-  void initState() {
-    //StatefulWidgetで使用されるウィジェットの初期化時に呼び出されるメソッドです
+  void initState() {//StatefulWidgetで使用されるウィジェットの初期化時に呼び出されるメソッドです
     super.initState();
     controller =
         StreamController<int>(); //StreamControllerというクラスのインスタンスを作成するコード
@@ -79,24 +71,23 @@ class TodoListPageState extends State<TodoListPage> {
     // タブごとに異なるクエリを実行
   }
 
+
   @override
-  void dispose() {
+  void dispose() {//Widgetがツリーから削除された時に呼び出される
     //ウィジェットやオブジェクトが不要になったときに、それらを解放しリソースをクリーンアップするためのメソッド
     controller.close(); //ストリームの終了やリソースの解放を行うためのメソッド
     super.dispose();
   }
 
+
   void _updateData() {
-    controller.add(1); // データが更新されたことを通知
+    controller.add(1); //ストリームにデータを追加する
   }
 
-  // Todoリストのデータ
-  List<String> todoList = [];
+  
 
   @override
   Widget build(BuildContext context) {
-    //BuildContext:buildする時に情報を提供する。
-    //tabバー
     // build メソッド内でクエリを設定
     switch (selectedTabIndex) {
       //ここから
@@ -104,7 +95,7 @@ class TodoListPageState extends State<TodoListPage> {
         todoListQuery = db?.query(
           'todos',
           where: 'content LIKE ?',
-          whereArgs: ['%%'], //ハードコード
+          whereArgs: ['%%'], //全てのレコードを取得
           orderBy: 'created_at DESC',
         );
         break;
@@ -124,11 +115,14 @@ class TodoListPageState extends State<TodoListPage> {
           orderBy: 'created_at DESC',
         );
         break;
-    } // ここまで
-    return DefaultTabController(
-      //タブバーとタブビューを組み合わせて使用する際に、デフォルトのコントローラを提供するものです
+    } 
+
+
+
+    return DefaultTabController(//タブの状態を管理するためのWidget
       length: 3,
       child: Scaffold(
+
         // AppBarを表示し、タイトルも設定
         appBar: AppBar(
           bottom: TabBar(
@@ -137,7 +131,7 @@ class TodoListPageState extends State<TodoListPage> {
               Tab(text: 'サッカー'),
               Tab(text: 'テニス'),
             ],
-            onTap: (index) {
+            onTap: (index) {//indexはタップされたタブのインデックス(卓球なら0,サッカーなら1)
               setState(() {
                 selectedTabIndex = index; //タブが選択されたときに変数を更新
               });
@@ -145,10 +139,15 @@ class TodoListPageState extends State<TodoListPage> {
           ),
           title: const Text('リスト'),
         ),
+
+
+
         // データを元にListViewを作成
         body: Column(
           children: [
-            ElevatedButton(
+
+
+            ElevatedButton(//検索ボタン
               onPressed: () {},
               style: ElevatedButton.styleFrom(
                 fixedSize: const Size(20, 20),
@@ -157,8 +156,10 @@ class TodoListPageState extends State<TodoListPage> {
               ),
               child: const Text("検索バー"),
             ),
-            Expanded(
-              //これでListView.builderをラップして、画面の残りの領域を使用できるようした
+
+
+
+            Expanded(//残りのスペースを埋める
               child: StreamBuilder(
                   //Stream<int> stream = controller.stream;
                   //非同期処理が完了するまで表示する内容を指定し、非同期処理が完了した際にデータをもとにウィジェットツリーを再構築します
@@ -167,8 +168,6 @@ class TodoListPageState extends State<TodoListPage> {
                     if (snapshot.connectionState == ConnectionState.done) {
                       //AsyncSnapshot オブジェクトの connectionState プロパティを確認するもの
                       //snapshot.hasData
-                      debugPrint("hasdata called"); //コンソールにテキストを表示するために使用される
-                      debugPrint(snapshot.data.toString());
                       return ListView.builder(
                         //ListView:縦方向や横方向にスクロール可能な項目のリストを作成するために使用されます
                         shrinkWrap: true, //ウィジェットが子要素に合わせて縮小されるかどうかを制御します。
