@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/item_add.dart';
 import 'package:sqflite/sqflite.dart'; //DBの定義
 
 Database? db; //DBのインスタンスはDatabaseで定義します
@@ -160,26 +161,17 @@ class TodoListPageState extends State<TodoListPage> {
 
 
             Expanded(//残りのスペースを埋める
-              child: StreamBuilder(
-                  //Stream<int> stream = controller.stream;
-                  //非同期処理が完了するまで表示する内容を指定し、非同期処理が完了した際にデータをもとにウィジェットツリーを再構築します
-                  stream: todoListQuery!.asStream(),
-                  builder: (context, snapshot) {
+              child: StreamBuilder(//データを監視して、更新されるたびにWidgetを再構築する
+                  stream: todoListQuery!.asStream(),//監視するストリームを指定
+                  builder: (context, snapshot) {//ストリームのデータを元にWidgetを構築
                     if (snapshot.connectionState == ConnectionState.done) {
-                      //AsyncSnapshot オブジェクトの connectionState プロパティを確認するもの
-                      //snapshot.hasData
-                      return ListView.builder(
-                        //ListView:縦方向や横方向にスクロール可能な項目のリストを作成するために使用されます
-                        shrinkWrap: true, //ウィジェットが子要素に合わせて縮小されるかどうかを制御します。
-                        //physics:const NeverScrollableScrollPhysics(), //スクロールができなくなる
-                        itemCount:
-                            snapshot.data!.length, //nullだった時にエラーを出す。アイテムの総数を表す
-                        itemBuilder: (context, index) {
+                      return ListView.builder(//スクロール可能なリストを作成
+                        shrinkWrap: true, 
+                        itemCount:snapshot.data!.length,//リストのアイテムの数
+                        itemBuilder: (context, index) {//リストのアイテムを作成
                           return Card(
                             child: ListTile(
-                              title: Text(snapshot.data?[index]["content"]
-                                      .toString() ?? //?はnullを許容する。
-                                  "エラー"), //nullだった時に「エラー」を表示する。
+                              title: Text(snapshot.data?[index]["content"].toString() ?? "エラー"),//左がnullの場合右を返す
                             ),
                           );
                         },
@@ -189,23 +181,20 @@ class TodoListPageState extends State<TodoListPage> {
                       return const Text("エラー");
                     }
                     debugPrint("progress called");
-                    return const CircularProgressIndicator(); //アプリケーションが何らかの処理を行っていることをユーザーに示すために使用されます。通常、非同期操作やデータの読み込みなど、処理が完了するまでに時間がかかる場面で使われます。
+                    return const CircularProgressIndicator(); 
                   }),
             )
           ],
         ),
+
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            // "push"で新規画面に遷移
-            // リスト追加画面から渡される値を受け取る
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) {
-                // 遷移先の画面としてリスト追加画面を指定
-                return TodoAddPage(tabIndex: selectedTabIndex);
+              MaterialPageRoute(builder: (context) {//新しいページを作成する
+                return TodoAddPage(tabIndex: selectedTabIndex);//新しいページにデータを渡す
               }),
-            ).then((value) {
-              // リスト追加画面から戻ってきたときにデータを更新
-              _updateData();
+            ).then((value) {//pushメソッドが完了した後に呼び出されるコールバック
+              _updateData();//データを更新
             });
           },
           child: const Icon(Icons.add),
@@ -215,100 +204,4 @@ class TodoListPageState extends State<TodoListPage> {
   }
 }
 
-class TodoAddPage extends StatefulWidget {
-  final int tabIndex; // タブの選択状態を保持する変数
-  const TodoAddPage({Key? key, required this.tabIndex}) : super(key: key);
 
-  @override
-  TodoAddPageState createState() => TodoAddPageState();
-}
-
-class TodoAddPageState extends State<TodoAddPage> {
-  // 入力されたテキストをデータとして持つ
-  String _text = '';
-
-  // データを元に表示するWidget
-  @override
-  Widget build(BuildContext context) {
-    // タブの選択状態を使って適切な処理を行う
-    switch (widget.tabIndex) {
-      case 0:
-        debugPrint("卓球");
-        // 卓球の処理
-        break;
-      case 1:
-        debugPrint("サッカー");
-        // サッカーの処理
-        break;
-      case 2:
-        debugPrint("テニス");
-        // テニスの処理
-        break;
-      default:
-        break;
-    }
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('リスト追加'),
-      ),
-      body: Container(
-        // 余白を付ける
-        padding: const EdgeInsets.all(64), //上下左右の各方向に対して同じ値（ここでは64）の余白を作成する
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            // 入力されたテキストを表示
-            Text(_text, style: const TextStyle(color: Colors.blue)),
-            const SizedBox(height: 8),
-            // テキスト入力
-            TextField(
-              // 入力されたテキストの値を受け取る（valueが入力されたテキスト）
-              onChanged: (String value) {
-                //ユーザーが特定の入力フィールドに対して入力を行った際に発火されるコールバック
-                // データが変更したことを知らせる（画面を更新する）
-                setState(() {
-                  // データを変更
-                  _text = value;
-                });
-              },
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              // 横幅いっぱいに広げる
-              width: double.infinity,
-              // リスト追加ボタン
-              child: ElevatedButton(
-                onPressed: () async {
-                  await db?.insert(
-                    //DBに保存
-                    'todos', // テーブル名
-                    {
-                      'content': _text, // カラム名: 値
-                      'created_at': DateTime.now()
-                          .millisecondsSinceEpoch, //データベースに新しいレコードを挿入する際に、そのレコードが作成された日時を表すための情報を設定しています。
-                    },
-                  ).then((value) => Navigator.of(context).pop(_text)); //.then
-                },
-                child:
-                    const Text('リスト追加', style: TextStyle(color: Colors.white)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              // 横幅いっぱいに広げる
-              width: double.infinity,
-              // キャンセルボタン
-              child: TextButton(
-                onPressed: () {
-                  // ボタンをクリックした時の処理
-                  Navigator.of(context).pop(); // "pop"で前の画面に戻る
-                },
-                child: const Text('キャンセル'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
